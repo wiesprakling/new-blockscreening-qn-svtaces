@@ -32,8 +32,8 @@
 <body>
 <main>
   <h1>Queue numbers</h1>
-  <p class="sub">Input your username to see your queue number.</p>
-  <input id="q" class="search" type="search" placeholder="Search your name" aria-label="Search your name" autocomplete="off">
+  <p class="sub">Input your order code found in your email to see your queue number.</p>
+  <input id="q" class="search" type="search" placeholder="Enter your order code" aria-label="Enter your order code" autocomplete="off">
   <ul id="list" class="grid" aria-live="polite"></ul>
   <p id="status" class="status"></p>
 </main>
@@ -67,17 +67,24 @@ function parseCSV(text){
   return out;
 }
 
-function render(){
-  const term = searchEl.value.trim().toLowerCase();
-  const shown = rows.filter(r => r.name.toLowerCase().includes(term));
+const MIN_CHARS = 4;   /* characters needed before any result shows */
+const MAX_RESULTS = 5; /* if more match than this, ask for more characters */
+const norm = t => t.toLowerCase().replace(/\s+/g," ").trim();
+
+function note(text){
   listEl.innerHTML = "";
-  if(!shown.length){
-    const li=document.createElement("li");
-    li.className="msg";
-    li.textContent = rows.length ? "No one matches that name. Check the spelling and try again." : "No queue numbers yet. Check back soon.";
-    listEl.appendChild(li);
-    return;
-  }
+  const li=document.createElement("li");
+  li.className="msg"; li.textContent=text;
+  listEl.appendChild(li);
+}
+
+function render(){
+  const term = norm(searchEl.value);
+  if(term.length < MIN_CHARS){ note("Enter your full order code to see your queue number."); return; }
+  const shown = rows.filter(r => norm(r.name).includes(term));
+  if(!shown.length){ note("No match found. Check your order code and try again."); return; }
+  if(shown.length > MAX_RESULTS){ note("Too many matches. Type your full order code."); return; }
+  listEl.innerHTML = "";
   for(const r of shown){
     const li=document.createElement("li"); li.className="ticket";
     const n=document.createElement("span"); n.className="name"; n.textContent=r.name;
@@ -88,7 +95,7 @@ function render(){
 
 async function load(){
   if(SHEET_CSV_URL.startsWith("PASTE_")){
-    statusEl.textContent="Add your Google Sheet link in index.html to show queue numbers.";
+    statusEl.textContent="Thank you for trusting Seventeen Aces, Enjoy the movie!";
     return;
   }
   try{
@@ -110,8 +117,10 @@ async function load(){
 }
 
 searchEl.addEventListener("input", render);
+render();
 load();
 setInterval(load, REFRESH_SECONDS*1000);
 </script>
 </body>
 </html>
+
